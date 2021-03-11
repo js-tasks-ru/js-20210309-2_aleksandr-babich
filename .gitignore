@@ -144,6 +144,3 @@ teacher.karma.conf.js
 teacher*
 TODO.md
 
-docker-compose.yml
-Dockerfile
-.dockerignore
