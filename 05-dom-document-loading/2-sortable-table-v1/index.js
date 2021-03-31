@@ -1,6 +1,5 @@
 export default class SortableTable {
   element;
-  tableColumns;
   subElements;
 
   constructor(
@@ -32,14 +31,8 @@ export default class SortableTable {
   }
 
   getHeaders(header, order = '') {
-    this.tableColumns = [];
-
     return header
       .map(item => {
-        if (item.sortType === 'number') {
-          this.tableColumns.push(item.id);
-        }
-
         return `
           <div class="sortable-table__cell" data-id="${item.id}" data-sortable="${item.sortable}" data-order="${order}">
             <span>${item.title}</span>
@@ -55,41 +48,29 @@ export default class SortableTable {
   }
 
   getBody(bodyData) {
-    return Object.values(bodyData)
+    const tableCells = this.headerConfig.map(({id, template}) => {
+      return {id, template};
+    });
+
+    return bodyData
       .map(item => {
         return `
           <a id="${item.id}" href="/products/${item.id}" class="sortable-table__row">
-            ${this.getImage(item.images)}
-
-            <div class="sortable-table__cell">${item.title}</div>
-
-            ${this.getCells(item)}
+            ${this.getCells(tableCells, item)}
           </a>
         `;
       })
       .join('');
   }
 
-  getImage(images) {
-    return images ? `
-        <div class="sortable-table__cell">
-            <img class="sortable-table-image" alt="Image" src="${images[0].url}">
-        </div>
-    ` : '';
-  }
-
-  getCells(oneProduct) {
-    return this.tableColumns
-      .map(item => {
-        if (oneProduct.hasOwnProperty(item) === false) {
-          return '';
+  getCells(tableCells, oneProduct) {
+    return tableCells
+      .map(({id, template}) => {
+        if (template) {
+          return template(oneProduct[id]);
         }
 
-        if (oneProduct.template) {
-          return oneProduct.template;
-        }
-
-        return `<div class="sortable-table__cell">${oneProduct[item]}</div>`;
+        return `<div class="sortable-table__cell">${oneProduct[id]}</div>`;
       })
       .join('');
   }
@@ -120,7 +101,8 @@ export default class SortableTable {
       .querySelectorAll('.sortable-table__cell[data-id]')
       .forEach(item => item.setAttribute('data-order', ''));
     this.subElements.header
-      .querySelector(`[data-id="${fieldValue}"]`).setAttribute('data-order', orderValue);
+      .querySelector(`[data-id="${fieldValue}"]`)
+      .setAttribute('data-order', orderValue);
 
     this.subElements.body.innerHTML = this.getBody(this.data);
 
