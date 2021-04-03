@@ -1,60 +1,81 @@
 class Tooltip {
   static instance;
 
-  pointeroverHandlerEventListener = (event) => {
-    let tooltipElement = event.target.dataset.tooltip;
+  onPointerOver = (event) => {
+    let element = event.target.closest('[data-tooltip]');
 
-    this.render(tooltipElement);
+    if (!element) {
+      return;
+    }
+    this.render(element.dataset.tooltip);
+    this.addCoordinates(event.pageX, event.pageY);
 
-    this.element.style.left = event.pageX + 5 + 'px';
-    this.element.style.top = event.pageY + 5 + 'px';
+    document.addEventListener('pointermove', this.onPointerMove);
   }
 
-  pointeroutHandlerEventListener = (event) => {
+  onPointerMove = (event) => {
+    let element = event.target.closest('[data-tooltip]');
+
+    this.element.remove();
+
+    if (element) {
+      this.render(element.dataset.tooltip);
+      this.addCoordinates(event.pageX, event.pageY);
+
+      document.addEventListener('pointerout', this.onPointerOut);
+    }
+  }
+
+  onPointerOut = (event) => {
     this.destroy();
+
+    document.addEventListener('pointerover', this.onPointerOver);
   }
 
-  initialize(params = {}) {
+  constructor() {
     if (!Tooltip.instance) {
       Tooltip.instance = this;
     }
 
-    this.body = document.querySelector('body');
-    this.tooltipElements = this.body.querySelectorAll("[data-tooltip]")[0];
-
-    this.addEventListener(this.tooltipElements, 'pointerover', this.pointeroverHandlerEventListener);
-    this.addEventListener(this.tooltipElements, 'pointerout', this.pointeroutHandlerEventListener);
-
     return Tooltip.instance;
   }
 
-  render(element = '') {
-    const container = document.createElement('div');
+  initialize() {
+    this.body = document.querySelector('body');
 
-    container.innerHTML = element;
+    this.buildBaseElement();
 
+    document.addEventListener('pointerover', this.onPointerOver);
+  }
 
-    container.id = 'container';
-    container.classList.add('tooltip');
+  addCoordinates(pageX, pageY) {
+    const offset = 5;
 
-    container.style.position = 'absolute';
-    container.style.zIndex = 1000;
+    this.element.style.left = (pageX + offset) + 'px';
+    this.element.style.top = (pageY + offset) + 'px';
+  }
 
-    this.element = container;
+  buildBaseElement() {
+    this.element = document.createElement('div');
+  }
+
+  render(element) {
+    this.element.innerHTML = element;
+
+    this.element.id = 'container';
+    this.element.classList.add('tooltip');
+
+    this.element.style.position = 'absolute';
 
     this.body.append(this.element);
   }
 
-  addEventListener(object, eventName, handler) {
-    object.addEventListener(eventName, handler);
-  }
-
-  removeEventListener(object, eventName, handler) {
-    object.removeEventListener(eventName, handler);
-  }
-
   destroy() {
     this.element.remove();
+
+    document.removeEventListener('pointerover', this.onPointerOver);
+    document.removeEventListener('pointerout', this.onPointerOut);
+    document.removeEventListener('pointermove', this.onPointerMove);
   }
 }
 
