@@ -2,11 +2,12 @@ class Tooltip {
   static instance;
 
   onPointerOver = (event) => {
-    let element = event.target.closest('[data-tooltip]');
+    const element = event.target.closest('[data-tooltip]');
 
     if (!element) {
       return;
     }
+
     this.render(element.dataset.tooltip);
     this.addCoordinates(event.pageX, event.pageY);
 
@@ -14,22 +15,11 @@ class Tooltip {
   }
 
   onPointerMove = (event) => {
-    let element = event.target.closest('[data-tooltip]');
-
-    this.element.remove();
-
-    if (element) {
-      this.render(element.dataset.tooltip);
-      this.addCoordinates(event.pageX, event.pageY);
-
-      document.addEventListener('pointerout', this.onPointerOut);
-    }
+    this.addCoordinates(event.pageX, event.pageY);
   }
 
-  onPointerOut = (event) => {
-    this.destroy();
-
-    document.addEventListener('pointerover', this.onPointerOver);
+  onPointerOut = () => {
+    this.removeTooltip();
   }
 
   constructor() {
@@ -43,9 +33,8 @@ class Tooltip {
   initialize() {
     this.body = document.querySelector('body');
 
-    this.buildBaseElement();
-
     document.addEventListener('pointerover', this.onPointerOver);
+    document.addEventListener('pointerout', this.onPointerOut);
   }
 
   addCoordinates(pageX, pageY) {
@@ -55,11 +44,18 @@ class Tooltip {
     this.element.style.top = (pageY + offset) + 'px';
   }
 
-  buildBaseElement() {
-    this.element = document.createElement('div');
+  removeTooltip() {
+    if (this.element) {
+      this.element.remove();
+      this.element = null;
+
+      document.removeEventListener('pointermove', this.onPointerMove);
+    }
   }
 
   render(element) {
+    this.element = document.createElement('div');
+
     this.element.innerHTML = element;
 
     this.element.id = 'container';
@@ -71,11 +67,10 @@ class Tooltip {
   }
 
   destroy() {
-    this.element.remove();
+    this.removeTooltip();
 
     document.removeEventListener('pointerover', this.onPointerOver);
     document.removeEventListener('pointerout', this.onPointerOut);
-    document.removeEventListener('pointermove', this.onPointerMove);
   }
 }
 
