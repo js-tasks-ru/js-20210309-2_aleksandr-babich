@@ -1,3 +1,5 @@
+import customFetch from './utils/fetch-json.js';
+
 export default class ColumnChart {
   chartHeight = 50;
 
@@ -17,7 +19,7 @@ export default class ColumnChart {
     this.formatHeading = formatHeading;
 
     this.render();
-    this.dataProvider().then(data => this.show(data));
+    this.dataProvider();
     this.initEventListeners();
   }
 
@@ -28,8 +30,8 @@ export default class ColumnChart {
     Object.entries(this.range).forEach(([key, value]) => url.searchParams.set(key, value));
 
     try {
-      const response = await fetch(url.toString());
-      return await response.json();
+      const data = await customFetch(url);
+      await this.show(data);
     } catch (e) {
       console.log(e);
     }
@@ -38,8 +40,7 @@ export default class ColumnChart {
   async update(dateFrom, dateTo) {
     this.range = {from: dateFrom, to: dateTo};
 
-    const data = await this.dataProvider();
-    await this.show(data);
+    await this.dataProvider();
   }
 
   getLink() {
