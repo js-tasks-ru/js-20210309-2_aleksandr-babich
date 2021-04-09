@@ -108,20 +108,30 @@ export default class ProductForm {
 
   async render () {
     const element = document.createElement('div');
-    this.categories = await this.dataProvider(
-      this.CATEGORY_PATH,
-      {_sort: 'weight', _refs: 'subcategory'}
-    );
+    const requests = [
+      this.dataProvider(
+        this.CATEGORY_PATH,
+        {_sort: 'weight', _refs: 'subcategory'}
+      )
+    ];
 
     if (this.productId !== '') {
-      const product = await this.dataProvider(
-        this.getPath(this.PRODUCT_PATH, {products: this.productId}),
-        {
-          queryParameters: {_sort: 'weight', _refs: 'subcategory'}
-        }
+      requests.push(
+        this.dataProvider(
+          this.getPath(this.PRODUCT_PATH, {products: this.productId}),
+          {
+            queryParameters: {_sort: 'weight', _refs: 'subcategory'}
+          }
+        )
       );
+    }
 
-      this.product = Array.isArray(product) ? product[0] : product;
+    [this.categories, this.product = null] = await Promise.allSettled(requests);
+
+    this.categories = this.categories.status === 'fulfilled' ? this.categories.value : {};
+
+    if (this.product !== null && this.product.status === 'fulfilled') {
+      this.product = Array.isArray(this.product.value) ? this.product.value[0] : this.product.value;
     }
 
     element.innerHTML = this.template;
