@@ -50,7 +50,7 @@ export default class SortableList {
 
   onPointerDown = (event) => {
     const targetElement = event.target;
-
+console.log(targetElement);
     this.draggingEle = event.target.closest('li');
 
     if (targetElement.dataset.deleteHandle) {
@@ -98,7 +98,7 @@ export default class SortableList {
 
     this.items.forEach((li, index)=> {
       li.classList.add('sortable-list__item');
-      li.children[1].dataset.deleteHandle = index;
+      li.children[li.children.length - 1].dataset.deleteHandle = index;
 
       element.appendChild(li);
     });
