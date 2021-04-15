@@ -10,9 +10,8 @@ export default class SortableList {
   currentPositionY = 0;
 
   onMouseMove = (event) => {
-    this.draggingEle.style.position = 'absolute';
-    this.draggingEle.style.top = `${event.pageY - this.currentPositionY}px`;
-    this.draggingEle.style.left = `${event.pageX - this.currentPositionX}px`;
+    this.draggingEle.style.top = `${event.clientY - this.currentPositionY}px`;
+    this.draggingEle.style.left = `${event.clientX - this.currentPositionX}px`;
 
     const prevEle = this.draggingEle.previousElementSibling;
     const nextEle = this.placeholder.nextElementSibling;
@@ -50,7 +49,7 @@ export default class SortableList {
 
   onPointerDown = (event) => {
     const targetElement = event.target;
-console.log(targetElement);
+
     this.draggingEle = event.target.closest('li');
 
     if (targetElement.dataset.deleteHandle) {
@@ -69,12 +68,12 @@ console.log(targetElement);
       this.placeholder.style.height = `${draggingRect.height}px`;
     }
 
+    this.draggingEle.style.width = `${this.draggingEle.offsetWidth}px`;
+    this.draggingEle.style.height = `${this.draggingEle.offsetHeight}px`;
     this.draggingEle.classList.add('sortable-list__item_dragging');
-    this.draggingEle.style.width = '100%';
 
-    const rect = this.draggingEle.getBoundingClientRect();
-    this.currentPositionX = event.pageX - rect.left;
-    this.currentPositionY = event.pageY - rect.top;
+    this.currentPositionX = event.clientX - draggingRect.x;
+    this.currentPositionY = event.clientY - draggingRect.y;
 
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseup', this.onMouseUp);
@@ -99,7 +98,6 @@ console.log(targetElement);
     this.items.forEach((li, index)=> {
       li.classList.add('sortable-list__item');
       li.children[li.children.length - 1].dataset.deleteHandle = index;
-
       element.appendChild(li);
     });
 
@@ -123,14 +121,6 @@ console.log(targetElement);
   }
 
   initEvent () {
-    const pointerdown = new MouseEvent("pointerdown", {
-      bubbles: true,
-      cancelable: true,
-      view: window
-    });
-
-    this.element.dispatchEvent(pointerdown);
-
     this.element.addEventListener('pointerdown', this.onPointerDown);
   }
 
