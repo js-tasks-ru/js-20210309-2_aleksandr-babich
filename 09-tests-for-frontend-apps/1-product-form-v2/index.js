@@ -28,10 +28,8 @@ export default class ProductForm {
           <div class="form-group form-group__wide" data-element="sortable-list-container">
             <label class="form-label">Фото</label>
             <div data-element="imageListContainer">
-              <ul class="sortable-list">
-                ${this.getImages()}
-              </ul>
-              </div>
+
+            </div>
             <button type="button" name="uploadImage" class="button-primary-outline"><span>Загрузить</span></button>
           </div>
           <div class="form-group form-group__half_left">
@@ -71,10 +69,52 @@ export default class ProductForm {
     `;
   }
 
+  uploadImage = (event) => {
+    const fileInput = document.createElement('input');
+
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+
+    fileInput.addEventListener('change', async () => {
+      const [file] = fileInput.files;
+
+      if (file) {
+        const formData = new FormData();
+        const { ['sortable-list-container']: sortableListContainer, imageListContainer } = this.subElements;
+
+        formData.append('image', file);
+
+        sortableListContainer.classList.add('is-loading');
+        sortableListContainer.disabled = true;
+
+        const result = await this.provideData(
+          new URL(IMGUR_URL),
+          {},
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Client-ID ${IMGUR_CLIENT_ID}`
+            },
+            body: formData
+          }
+        );
+
+        imageListContainer.append(this.getImageItem(result.data.link, file.name));
+
+        sortableListContainer.classList.remove('is-loading');
+        sortableListContainer.disabled = false;
+
+        fileInput.remove();
+      }
+    });
+
+    fileInput.hidden = true;
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  }
+
   onSubmit = (event) => {
     event.preventDefault();
-
-    this.subElements.productForm = event.target;
 
     this.save();
   }
@@ -92,6 +132,13 @@ export default class ProductForm {
         {_sort: 'weight', _refs: 'subcategory'}
       )
     ];
+    const getValues = (parameter) => {
+      if (parameter !== null) {
+        return Array.isArray(parameter) ? parameter[0] : parameter;
+      }
+
+      return parameter;
+    };
 
     if (this.productId !== '') {
       requests.push(
@@ -102,21 +149,22 @@ export default class ProductForm {
       );
     }
 
-    [this.categories, this.product = null] = await Promise.allSettled(requests);
+    [this.categories, this.product = null] = await Promise.all(requests);
 
-    this.categories = this.categories.status === 'fulfilled' ? this.categories.value : {};
-
-    if (this.product !== null && this.product.status === 'fulfilled') {
-      this.product = Array.isArray(this.product.value) ? this.product.value[0] : this.product.value;
-    }
+    this.product = getValues(this.product);
 
     element.innerHTML = this.template;
 
     this.element = element.firstElementChild;
+
+    this.element.querySelector('[data-element="imageListContainer"]')
+      .append(
+        this.getImages(this.product ? this.product.images : [])
+      );
+
     this.subElements = this.getSubElements(this.element);
 
     this.initEventListener();
-    this.uploadImage();
 
     return this.element;
   }
@@ -171,25 +219,18 @@ export default class ProductForm {
     await this.update(data);
   }
 
-  getImages () {
-    if (!this.product || !this.product.images) {
-      return '';
-    }
-    const sortableListWrap = document.createElement('div');
+  getImages (images = []) {
+    const items = images.map(image => {
+      const wrap = document.createElement('div');
 
-    const sortableList = new SortableList({
-      items: this.product.images.map(image => {
-        const wrap = document.createElement('div');
+      wrap.innerHTML = this.getImageItem(image.url, image.source).trim();
 
-        wrap.innerHTML = this.getImageItem(image.url, image.source).trim();
-
-        return wrap.firstChild;
-      })
+      return wrap.firstChild;
     });
 
-    sortableListWrap.append(sortableList.element);
+    const sortableList = new SortableList({ items });
 
-    return sortableListWrap.innerHTML;
+    return sortableList.element;
   }
 
   getImageItem (url = '', source = '') {
@@ -247,46 +288,6 @@ export default class ProductForm {
       .join('/');
   }
 
-  uploadImage () {
-    const fileInput = document.createElement('input');
-
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-
-    fileInput.addEventListener('change', async () => {
-      const [file] = fileInput.files;
-
-      if (file) {
-        const formData = new FormData();
-        const { uploadImage, imageListContainer } = this.subElements;
-
-        formData.append('omage', file);
-
-        uploadImage.classList.add('is-loading');
-        uploadImage.disabled = true;
-
-        const result = await this.provideData(
-          new URL(IMGUR_URL),
-          {},
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Client-ID ${IMGUR_CLIENT_ID}`
-            },
-            body: formData
-          }
-        );
-
-        imageListContainer.append(this.getImageItem(result.data.link, file.name));
-
-        uploadImage.classList.remove('is-loading');
-        uploadImage.disabled = false;
-
-        fileInput.remove();
-      }
-    });
-  }
-
   provideData (
     url = this.baseUrl,
     queryParameters = {},
@@ -322,6 +323,7 @@ export default class ProductForm {
 
   initEventListener () {
     this.subElements.productForm.addEventListener('submit', this.onSubmit);
+    this.subElements['sortable-list-container'].addEventListener('click', this.uploadImage);
   }
 
   dispatchEvent (eventName) {
